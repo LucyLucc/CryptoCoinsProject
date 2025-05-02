@@ -1,5 +1,5 @@
 //
-//  CryptoCoinProjectUITestsLaunchTests.swift
+//  ScrollingPerformanceTests.swift
 //  CryptoCoinProjectUITests
 //
 //  Created by Lucy Chetalam on 01/05/2025.
@@ -8,7 +8,9 @@
 
 import XCTest
 
-final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
+final class ScrollingPerformanceTests: XCTestCase {
+
+    private var app = XCUIApplication()
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
@@ -18,9 +20,13 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown(){
+       super.tearDown()
+    }
+    
     @MainActor
     func testLaunch() throws {
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,
@@ -32,4 +38,13 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         add(attachment)
     }
     
+    func testTableViewScrolling() throws{
+
+        measure(metrics: [XCTOSSignpostMetric.scrollingAndDecelerationMetric]) {
+            app.swipeUp()
+            app.swipeDown()
+        }
+       
+        
+    }
 }

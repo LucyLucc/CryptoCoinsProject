@@ -1,5 +1,5 @@
 //
-//  CryptoCoinProjectUITestsLaunchTests.swift
+//  ViewCoinDetailsTests.swift
 //  CryptoCoinProjectUITests
 //
 //  Created by Lucy Chetalam on 01/05/2025.
@@ -8,7 +8,9 @@
 
 import XCTest
 
-final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
+final class ViewCoinDetailsTests: XCTestCase {
+
+    private var app = XCUIApplication()
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
@@ -18,9 +20,13 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown(){
+       super.tearDown()
+    }
+    
     @MainActor
     func testLaunch() throws {
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,
@@ -32,4 +38,16 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         add(attachment)
     }
     
+    func testTCoinDetailsPage() throws{
+  
+        let cellCount = app.tables.cells.count
+        XCTAssertTrue(cellCount > 0)
+
+        let firstCell = app.tables.cells.element(boundBy: 0)
+        XCTAssertTrue(firstCell.exists)
+        firstCell.tap()
+        XCTAssert(app.navigationBars["Crypto Coin Details"].exists, " 2nd Navigation Title Not Available")
+        app.swipeDown()
+        XCTAssertTrue(app.navigationBars["Crypto Coins"].waitForExistence(timeout: 5))
+    }
 }

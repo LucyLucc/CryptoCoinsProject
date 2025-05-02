@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-
+import SwiftUI
 
 class FavTableViewDetail: UIViewController
 {
@@ -23,14 +23,14 @@ class FavTableViewDetail: UIViewController
     var selectedShape : Coin!
     
     //The received data gets initialized below
-       init?(coder: NSCoder, selectedShape: Coin) {
-         self.selectedShape = selectedShape
-         super.init(coder: coder)
-       }
-       
-       required init?(coder: NSCoder) {
-           fatalError("init(coder:) has not been implemented")
-       }
+   init?(coder: NSCoder, selectedShape: Coin) {
+     self.selectedShape = selectedShape
+     super.init(coder: coder)
+   }
+   
+   required init?(coder: NSCoder) {
+       fatalError("init(coder:) has not been implemented")
+   }
     
     override func viewDidLoad()
     {
@@ -40,19 +40,20 @@ class FavTableViewDetail: UIViewController
         coinPrice.text = ("Price: \(selectedShape.price)")
         listedAt.text = ("Listed At : \(selectedShape.listedAt)")
         btcPrice.text = ("btcPrice: \(selectedShape.btcPrice)")
-        //print("selectedShape \(selectedShape.contractAddresses)")
-    
-        var addressText = ""  // Create an empty string to hold all contract addresses
-
-        // Loop through the array and append each address followed by a newline character
-        for address in selectedShape.contractAddresses {
-            print("address \(address)")
-            addressText += address + "\n"
+        
+        let controller = UIHostingController(rootView: DynamicCharts(sparkline: selectedShape.sparkline))
+        guard let chartfView = controller.view else {
+            
+            return
         }
-
-        contracts.text = addressText  // Set the label's text to the concatenated string
-        contracts.numberOfLines = selectedShape.contractAddresses.count  // Number of lines will match the count of contract addresses
-        contracts.lineBreakMode = .byWordWrapping
+        
+        view.addSubview(chartfView)
+        chartfView.snp.makeConstraints{make in
+            make.leading.equalToSuperview().offset(15)
+            make.trailing.equalToSuperview().inset(20)
+            make.height.equalTo(300)
+            make.topMargin.greaterThanOrEqualTo(btcPrice).offset(120)
+        }
         
     }
 }

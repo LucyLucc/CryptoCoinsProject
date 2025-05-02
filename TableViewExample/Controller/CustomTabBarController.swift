@@ -9,13 +9,16 @@
 import Foundation
 import UIKit
 
-class CustomTabBarController: UITabBarController
+class CustomTabBarController: UITabBarController, UITabBarControllerDelegate
 {
     @IBInspectable var initialIndex: Int = 0
+    var selectedCoins: [Coin] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.delegate = self
         selectedIndex = initialIndex
+        selectedCoins.removeAll()
         
         configureTabs()
     }
@@ -27,5 +30,9 @@ class CustomTabBarController: UITabBarController
         vc1.title = "Home"
         vc2.title = "Favourites"
         
+    }
+    
+    func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+        //selectedCoins.removeAll()
     }
 }

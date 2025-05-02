@@ -1,5 +1,5 @@
 //
-//  CryptoCoinProjectUITestsLaunchTests.swift
+//  FilterTableViewTests.swift
 //  CryptoCoinProjectUITests
 //
 //  Created by Lucy Chetalam on 01/05/2025.
@@ -8,7 +8,9 @@
 
 import XCTest
 
-final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
+final class FilterTableViewTests: XCTestCase {
+
+    private var app = XCUIApplication()
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
@@ -17,10 +19,14 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
+    
+    override func tearDown(){
+       super.tearDown()
+    }
 
     @MainActor
     func testLaunch() throws {
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,
@@ -32,4 +38,13 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         add(attachment)
     }
     
+    func testTableViewFiltering() throws{
+        measure(metrics: [XCTCPUMetric(application: app), XCTMemoryMetric(application: app)]) {
+            app.buttons["Highest Price"].tap()
+            app.buttons["Best Performance"].tap()
+        }
+       
+        
+        
+    }
 }

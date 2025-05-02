@@ -3,76 +3,26 @@ import UIKit
 import SwiftUI
 
 
-protocol SecondViewControllerDelegate: AnyObject {
-    func didFetchCoins(_ coins: [String])
-}
-
-
-class TableHeader : UITableViewHeaderFooterView{
-    static let identifier = "TableHeader"
-    
-    private let label : UILabel = {
-        let label = UILabel()
-        label.text = "Crypto Coins"
-        label.textAlignment = .center
-        label.font = .systemFont(ofSize: 22, weight: .semibold)
-        label.backgroundColor = .gray
-        return label
-    }()
-    
-    override init(reuseIdentifier: String?){
-        super.init(reuseIdentifier: reuseIdentifier)
-        contentView.addSubview(label)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-            
-            // Ensure label fits well within the header and is properly aligned
-            label.sizeToFit()
-            label.frame = CGRect(x: 0, y: (contentView.frame.height - label.frame.height) / 2, width: contentView.frame.width, height: label.frame.height)
-    }
-    
-}
-
-
 class TableViewController: UIViewController, UITableViewDataSource, UITableViewDelegate
 {
-
-    weak var delegate: SecondViewControllerDelegate?
-    
-    let searchController = UISearchController()
     var selectedShapePosition = 0
- 
-	@IBOutlet weak var shapeTableView: UITableView!
     let getDataFromJson = GetJSONData()
-    
     var favouriteCoins:[Coin] = []
+    var set = Set<Coin>()
     
+	@IBOutlet weak var shapeTableView: UITableView!
     @IBOutlet weak var segmentedControl: UISegmentedControl!
-    @IBAction func sendData() {
-        NotificationCenter.default.post(name: Notification.Name("DidFetchCoinsNotification"), object: ["coins" : favouriteCoins])
-    }
     
     @IBAction func SortTable(_ sender: UISegmentedControl) {
         sortCoinTable()
     }
     
     func sortCoinTable(){
-        
         switch segmentedControl.selectedSegmentIndex{
-            
         case 0:
             getDataFromJson.coinArray.sort(by: {$0.price > $1.price})
         case 1:
             getDataFromJson.coinArray.sort(by: {$0.volume24h > $1.volume24h})
-
-            
         default:
             print("Error occured!")
         }
@@ -81,21 +31,28 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
     
     
     @IBSegueAction
-   private func showTableViewDetail(coder: NSCoder, sender: Any?, segueIdentifier: String?)
+    private func showTableViewDetail(coder: NSCoder, sender: Any?, segueIdentifier: String?)
        -> TableViewDetail? {
            return TableViewDetail(coder: coder, selectedShape: getDataFromJson.coinArray[selectedShapePosition])
-   }
+    }
 	
 	override func viewDidLoad()
 	{
 		super.viewDidLoad()
-
         shapeTableView.delegate = self
         shapeTableView.dataSource = self
-       
         initList()
+        
+        let tabbarvalue = tabBarController as! CustomTabBarController
+        favouriteCoins = tabbarvalue.selectedCoins
 	}
 	
+    override func viewDidDisappear(_ animated: Bool) {
+        let tabbarvalue = tabBarController as! CustomTabBarController
+        tabbarvalue.selectedCoins = self.favouriteCoins
+        //print("tabview on disapper \(tabbarvalue.selectedCoins[0].name)")
+    }
+    
 	func initList()
 	{
         getDataFromJson.getData {
@@ -110,8 +67,6 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
 	
 	func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
 	{
-        
-        
 		let tableViewCell = tableView.dequeueReusableCell(withIdentifier: "tableViewCellID") as! TableViewCell
 		
 		let thisShape = getDataFromJson.coinArray[indexPath.row]
@@ -143,35 +98,15 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         selectedShapePosition = indexPath.row
 		self.performSegue(withIdentifier: "detailSegue", sender: self)
 	}
-	
-	/*override func prepare(for segue: UIStoryboardSegue, sender: Any?)
-    
-	{
-        
-		if(segue.identifier == "detailSegue")
-		{
-			let indexPath = self.shapeTableView.indexPathForSelectedRow!
-			
-			let tableViewDetail = segue.destination as? TableViewDetail
-			
-            let selectedShape = getDataFromJson.coinArray[indexPath.row]
-			
-			tableViewDetail!.selectedShape = selectedShape
-			
-			self.shapeTableView.deselectRow(at: indexPath, animated: true)
-		}
-	}
-    */
     
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         //Add selected coin item to a list array
         
         let addFavourites = UIContextualAction(style: .destructive, title: nil){_,_, completion in
             let selectedCoin = self.getDataFromJson.coinArray[indexPath.row].name
-            
-            self.favouriteCoins.append(self.getDataFromJson.coinArray[indexPath.row])
-            //print("Selected \(selectedCoin) as favourite")
-            self.sendData()
+            NotificationCenter.default.post(name: Notification.Name("favouriteSwipped"), object: nil, userInfo: nil)
+            self.addCoin(object: self.getDataFromJson.coinArray[indexPath.row])
+            print("Selected \(selectedCoin) as favourite")
             completion(true)
         }
         addFavourites.image = UIImage(systemName: "heart")
@@ -182,12 +117,12 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         return config
     }
     
-    func getFavouriteCoins() -> [Coin?]{
-        
-        return favouriteCoins
+    func addCoin(object: Coin) {
+        if !favouriteCoins.contains(object) {
+            favouriteCoins.append(object)
+        }
     }
 }
-
 
 extension UIImageView {
     func load(urlString : String) {

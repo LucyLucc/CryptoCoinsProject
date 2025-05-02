@@ -1,8 +1,9 @@
 //
-//  CryptoCoinProject2UITests.swift
-//  CryptoCoinProject2UITests
+//  CryptoCoinProjectUITests.swift
+//  CryptoCoinProjectUITests
 //
-//  Created by Lucy Chetalam on 28/04/2025.
+//  Created by Lucy Chetalam on 01/05/2025.
+//  Copyright © 2025 CodeWithCal. All rights reserved.
 //
 
 import XCTest

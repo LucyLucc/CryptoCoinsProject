@@ -1,5 +1,5 @@
 //
-//  CryptoCoinProjectUITestsLaunchTests.swift
+//  AppFlowTests.swift
 //  CryptoCoinProjectUITests
 //
 //  Created by Lucy Chetalam on 01/05/2025.
@@ -8,7 +8,8 @@
 
 import XCTest
 
-final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
+final class AppFlowTests: XCTestCase {
+    private var app = XCUIApplication()
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
@@ -17,10 +18,15 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
+    
+    override func tearDown(){
+       super.tearDown()
+        
+    }
 
     @MainActor
     func testLaunch() throws {
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,
@@ -32,4 +38,18 @@ final class CryptoCoinProjectUITestsLaunchTests: XCTestCase {
         add(attachment)
     }
     
+    func testNavigationSelection() throws{
+        
+        XCTAssert(app.navigationBars["Crypto Coins"].exists, "Navigation Title Not Available")
+        
+    }
+    func testNavigationToFavouriteView() {
+          
+        let favButton = app.buttons["Favourites"]
+        XCTAssertTrue(favButton.exists)
+        favButton.tap()
+
+        XCTAssert(app.navigationBars["Favourites"].exists, "Favourites Navigation Title Not Available")
+       }
+   
 }
