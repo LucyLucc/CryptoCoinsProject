@@ -2,7 +2,7 @@ import UIKit
 import SwiftUI
 import Network
 
-class TableViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class TableViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate {
 
     var selectedShapePosition = 0
     let getDataFromJson = GetJSONData()
@@ -10,6 +10,8 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
     var set = Set<Coin>()
     let monitor = NWPathMonitor()
     var isConnected = true
+    var currentOffset = 0
+    var isLoadingMore = false
 
     @IBOutlet weak var shapeTableView: UITableView!
     @IBOutlet weak var segmentedControl: UISegmentedControl!
@@ -29,7 +31,6 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         shapeTableView.dataSource = self
         setupErrorLabel()
         startMonitoringConnection()
-        initList()
 
         if let tabbarvalue = tabBarController as? CustomTabBarController {
             favouriteCoins = tabbarvalue.selectedCoins
@@ -72,13 +73,16 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
 
     func initList() {
         guard isConnected else { return }
-        getDataFromJson.getData {success in 
+        isLoadingMore = true
+        getDataFromJson.getData(offset: currentOffset) { success in
             DispatchQueue.main.async {
                 if success {
                     self.sortCoinTable()
+                    self.currentOffset += 20
                 } else {
                     self.errorLabel.isHidden = false
                 }
+                self.isLoadingMore = false
             }
         }
     }
@@ -91,14 +95,14 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         switch segmentedControl.selectedSegmentIndex {
         case 0:
             getDataFromJson.coinArray.sort(by: {
-                       guard let price1 = Decimal(string: $0.price),
-                             let price2 = Decimal(string: $1.price) else { return false }
-                       return price1 > price2
-                   })
+                guard let price1 = Decimal(string: $0.price),
+                      let price2 = Decimal(string: $1.price) else { return false }
+                return price1 > price2
+            })
         case 1:
             getDataFromJson.coinArray.sort {
-                        (Double($0.volume24h) ?? 0.0) > (Double($1.volume24h) ?? 0.0)
-                    }
+                (Double($0.volume24h) ?? 0.0) > (Double($1.volume24h) ?? 0.0)
+            }
         default:
             print("Error occurred!")
         }
@@ -125,11 +129,13 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         formatter.currencyCode = "$"
         formatter.numberStyle = .currency
 
-        let value = Decimal(string: thisShape.price)!
-        let stringPrice = formatter.string(for: value) ?? "?"
-        tableViewCell.shapePrice.text = "Price: \(stringPrice)"
-       // tableViewCell.shapePerformance.text = "\(thisShape.volume24h)"
-        
+        if let value = Decimal(string: thisShape.price),
+           let stringPrice = formatter.string(for: value) {
+            tableViewCell.shapePrice.text = "Price: \(stringPrice)"
+        } else {
+            tableViewCell.shapePrice.text = "Price: ?"
+        }
+
         if let volume = Double(thisShape.volume24h) {
             let numberFormatter = NumberFormatter()
             numberFormatter.numberStyle = .decimal
@@ -137,10 +143,10 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
             let volumeFormatted = numberFormatter.string(from: NSNumber(value: volume)) ?? "?"
             tableViewCell.shapePerformance.text = "\(volumeFormatted)"
         } else {
-            tableViewCell.shapePerformance.text = "24h Vol: ?"
+            tableViewCell.shapePerformance.text = ""
         }
-        tableViewCell.shapeImage.load(urlString: thisShape.iconUrl)
 
+        tableViewCell.shapeImage.load(urlString: thisShape.iconUrl)
         return tableViewCell
     }
 
@@ -155,7 +161,7 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
             let selectedName = selectedCoin.name
 
             NotificationCenter.default.post(name: .favouriteSwipped, object: nil)
-            NotificationCenter.default.post(name: .cryptoSwiped, object: nil, userInfo: ["name": selectedName])
+            NotificationCenter.default.post(name: .cryptoSwiped, object: nil, userInfo: ["name": selectedCoin])
 
             if let tabbarvalue = self.tabBarController as? CustomTabBarController {
                 if !tabbarvalue.selectedCoins.contains(selectedCoin) {
@@ -181,6 +187,16 @@ class TableViewController: UIViewController, UITableViewDataSource, UITableViewD
         config.performsFirstActionWithFullSwipe = false
         return config
     }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let position = scrollView.contentOffset.y
+        let contentHeight = shapeTableView.contentSize.height
+        let frameHeight = shapeTableView.frame.size.height
+
+        if position > (contentHeight - frameHeight - 100), !isLoadingMore, getDataFromJson.coinArray.count < 100 {
+            initList()
+        }
+    }
 }
 
 extension UIImageView {
@@ -195,3 +211,4 @@ extension UIImageView {
         }
     }
 }
+
