@@ -13,6 +13,7 @@ class CustomTabBarController: UITabBarController, UITabBarControllerDelegate
 {
     @IBInspectable var initialIndex: Int = 0
     var selectedCoins: [Coin] = []
+    var lastSwipedCoins: [Coin] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()

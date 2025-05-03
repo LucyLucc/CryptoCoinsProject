@@ -1,142 +1,142 @@
-//
-//  FavouritesViewController.swift
-//  TableViewExample
-//
-//  Created by Lucy Chetalam on 29/04/2025.
-//  Copyright © 2025 CodeWithCal. All rights reserved.
-//
-
 import UIKit
 
-class FavouritesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate
-{
+class FavouritesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+    
     var fetchedCoins: [Coin] = []
     @IBOutlet weak var emptyListView: UIView!
-    var fetchedCoinsX: [Coin] = []
     @IBOutlet weak var emptyList: UILabel!
-    let messageLabel = UILabel()
-    var observer: NSObjectProtocol?
     var refreshControl: UIRefreshControl?
     @IBOutlet weak var favouriteTableView: UITableView!
     var selectedShapePosition = 0
-    
+    var isObserverAdded = false
+
     @IBSegueAction
     private func showFavTableViewDetail(coder: NSCoder, sender: Any?, segueIdentifier: String?)
        -> FavTableViewDetail? {
            return FavTableViewDetail(coder: coder, selectedShape: self.fetchedCoins[selectedShapePosition])
     }
-    
-    override func viewDidLoad()
-    {
+
+    override func viewDidLoad() {
         super.viewDidLoad()
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem.init(barButtonSystemItem: UIBarButtonItem.SystemItem.refresh, target: self, action: #selector(refreshList))
-        favouriteTableView.reloadData()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(handleListChange), name: Notification.Name("favouriteSwipped"), object: nil)
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .refresh,
+            target: self,
+            action: #selector(refreshList)
+        )
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(handleListChange), name: .favouriteSwipped, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleCryptoSwipe(_:)), name: .cryptoSwiped, object: nil)
+        
         addRefreshControl()
         handleListChange()
         self.view.layoutIfNeeded()
     }
-    
-    @objc func handleListChange(){
-        favouriteTableView.reloadData()
-        print("fetchedCoins\(fetchedCoins)")
-        if(fetchedCoins.count == 0){
-            favouriteTableView.backgroundView = emptyListView
-        }else{
-            emptyListView.isHidden = true
-            favouriteTableView.backgroundView = nil
+
+    @objc func handleCryptoSwipe(_ notification: Notification) {
+        if let name = notification.userInfo?["name"] as? String {
+            print("Swiped on: \(name)")
         }
+
+        if let tabbarvalue = tabBarController as? CustomTabBarController {
+            let newCoins = tabbarvalue.selectedCoins
+            self.fetchedCoins.append(contentsOf: newCoins)
+            self.fetchedCoins = uniqueElementsFrom(array: self.fetchedCoins)
+            favouriteTableView.reloadData()
+            emptyListView.isHidden = !self.fetchedCoins.isEmpty
+        }
+    }
+
+    @objc func handleListChange() {
+        favouriteTableView.reloadData()
+        emptyListView.isHidden = !fetchedCoins.isEmpty
         self.view.layoutIfNeeded()
     }
-    
-    func addRefreshControl(){
+
+    func addRefreshControl() {
         refreshControl = UIRefreshControl()
         refreshControl?.tintColor = UIColor.red
         refreshControl?.addTarget(self, action: #selector(refreshList), for: .valueChanged)
         favouriteTableView.addSubview(refreshControl!)
-        
     }
-    
-    @objc func refreshList(){
-        let tabbarvalue = tabBarController as! CustomTabBarController
+
+    @objc func refreshList() {
+        guard let tabbarvalue = tabBarController as? CustomTabBarController else { return }
         
         self.fetchedCoins.append(contentsOf: tabbarvalue.selectedCoins)
-        
-        self.fetchedCoins = uniqueElementsFrom(array:self.fetchedCoins)
-        print("tabbarvalue.selectedCoins \(tabbarvalue.selectedCoins)")
+        self.fetchedCoins = uniqueElementsFrom(array: self.fetchedCoins)
         
         refreshControl?.endRefreshing()
         favouriteTableView.reloadData()
-        
+        emptyListView.isHidden = !fetchedCoins.isEmpty
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        let tabbarvalue = tabBarController as! CustomTabBarController
+        super.viewDidAppear(animated)
         
-        self.fetchedCoins.append(contentsOf: tabbarvalue.selectedCoins)
-        
-        self.fetchedCoins = uniqueElementsFrom(array:self.fetchedCoins)
-        print("tabbarvalue.selectedCoins \(tabbarvalue.selectedCoins)")
-       
-        DispatchQueue.main.async {
-                self.favouriteTableView.reloadData()
-            }
-        self.view.layoutIfNeeded()
-    }
-    
-    func uniqueElementsFrom<T: Hashable>(array: [T]) -> [T] {
-      var set = Set<T>()
-      let result = array.filter {
-        guard !set.contains($0) else {
-          return false
+        if !isObserverAdded {
+            NotificationCenter.default.addObserver(self,
+                                                   selector: #selector(handleCryptoSwipe(_:)),
+                                                   name: .cryptoSwiped,
+                                                   object: nil)
+            isObserverAdded = true
         }
-        set.insert($0)
-        return true
-      }
-      return result
+
+        if let tabbarvalue = tabBarController as? CustomTabBarController {
+            self.fetchedCoins.append(contentsOf: tabbarvalue.selectedCoins)
+            self.fetchedCoins = uniqueElementsFrom(array: self.fetchedCoins)
+        }
+
+        favouriteTableView.reloadData()
+        emptyListView.isHidden = !fetchedCoins.isEmpty
     }
-    
+
+    func uniqueElementsFrom<T: Hashable>(array: [T]) -> [T] {
+        var set = Set<T>()
+        return array.filter {
+            guard !set.contains($0) else { return false }
+            set.insert($0)
+            return true
+        }
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // Return the count of your data array
-        print(fetchedCoins.count)
         return fetchedCoins.count
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let tableViewCell = tableView.dequeueReusableCell(withIdentifier: "FavouriteViewCellID") as! FavableViewCell
-        
-        let thisName = fetchedCoins[indexPath.row].name
-        let thisIcon = fetchedCoins[indexPath.row].iconUrl
-        
-        tableViewCell.favName.text = "\(thisName)"
-        
-        tableViewCell.favImage.load(urlString:thisIcon)
+        let coin = fetchedCoins[indexPath.row]
+        tableViewCell.favName.text = coin.name
+        tableViewCell.favImage.load(urlString: coin.iconUrl)
         return tableViewCell
     }
-    
-    
+
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        let deleteAction = UIContextualAction(style: .destructive, title: nil){_,_, completion in
+        let deleteAction = UIContextualAction(style: .destructive, title: nil) { _, _, completion in
+            let coinToRemove = self.fetchedCoins[indexPath.row]
             self.fetchedCoins.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
-            let tabbarvalue = self.tabBarController as! CustomTabBarController
-            tabbarvalue.selectedCoins.remove(at: indexPath.row)
             
+            if let tabbarvalue = self.tabBarController as? CustomTabBarController {
+                tabbarvalue.selectedCoins.removeAll(where: { $0 == coinToRemove })
+            }
+
+            self.emptyListView.isHidden = !self.fetchedCoins.isEmpty
             completion(true)
         }
-        
+
         deleteAction.image = UIImage(systemName: "trash")
         deleteAction.backgroundColor = .systemRed
-        let config = UISwipeActionsConfiguration(actions: [deleteAction])
-        
-        return config
+        return UISwipeActionsConfiguration(actions: [deleteAction])
     }
-    
+
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedShapePosition = indexPath.row
         self.performSegue(withIdentifier: "favDetailSegue", sender: self)
     }
-}
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
